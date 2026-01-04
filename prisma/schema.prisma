@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth User
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("USER") // USER, ADMIN
+  accounts      Account[]
+  sessions      Session[]
+  // 2FA
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String? // Encrypted secret
+
+  // Custom Relations
+  blogs         Blog[]    @relation("UserBlogs")
+  posts         Post[]    @relation("UserPosts")
+
+  // Phase 4 Extensions
+  comments      Comment[]
+  auditLogs     AuditLog[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Tenant System
+model Blog {
+  id          String   @id @default(cuid())
+  name        String
+  subdomain   String   @unique // e.g. "myblog" -> myblog.domain.com
+  customDomain String? @unique // e.g. "www.myblog.com"
+  description String?  @db.Text
+  themeConfig String?  @db.Text // JSON: { primaryColor, layout }
+  dailyStats  DailyStat[]
+  
+  ownerId     String
+  owner       User     @relation("UserBlogs", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  posts       Post[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   // URL friendly title
+  content   String   @db.LongText
+  published Boolean  @default(false)
+  image     String?
+
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User     @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([blogId, slug]) // Slugs must be unique per blog
+  @@index([blogId])
+  @@index([authorId])
+
+  // Phase 4.5 Engagement
+  viewCount Int       @default(0)
+  comments  Comment[]
+  revisions PostRevision[]
+
+  @@fulltext([title, content])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([postId])
+  @@index([userId])
+}
+
+// Phase 4.3 Security
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE
+  resource  String   // Post, Blog, Settings
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique // IP or UserID
+  count     Int      @default(0)
+  expiresAt DateTime
+  
+  @@index([key])
+}
+
+// Phase 7: Analytics
+model DailyStat {
+  id        String   @id @default(cuid())
+  date      String   // YYYY-MM-DD
+  views     Int      @default(0)
+  
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, date])
+  @@index([blogId])
+}
+
+model PostRevision {
+    id        String   @id @default(cuid())
+    postId    String
+    post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+    title     String
+    content   String   @db.LongText
+    createdAt DateTime @default(now())
+
+    @@index([postId])
+}
