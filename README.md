@@ -1,19 +1,45 @@
-# 🚀 NaesungCMS (Hybrid Edition)
+# NaesungCMS
 
-**The Ultimate Multi-Tenant CMS | Cloud Native & On-Premise Ready**
+<img src="https://img.shields.io/badge/standard--readme-OK-green.svg?style=for-the-badge"/>
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Docker](https://img.shields.io/badge/Docker-Ready-blue) ![Prisma](https://img.shields.io/badge/Prisma-ORM-teal) ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Docker](https://img.shields.io/badge/Docker-Ready-blue) ![Prisma](https://img.shields.io/badge/Prisma-ORM-teal) ![License](https://img.shields.io/badge/License-MIT-green)
-
-**NaesungCMS** is a production-ready, high-performance content management system designed for **Zero Trust Security** and **Massive Multi-tenancy**. 
+**NaesungCMS** (Hybrid Edition) is a production-ready, high-performance content management system designed for **Zero Trust Security** and **Massive Multi-tenancy**. 
 
 It features a unique **Hybrid Infrastructure Architecture**, allowing you to deploy it on **AWS (Serverless)** or **Self-Hosted (Docker)** environments by simply changing a single environment variable.
 
----
+## Table of Contents
 
-## 🌟 Key Features
+- [Security](#security)
+- [Background](#background)
+- [Key Features](#key-features)
+- [Project Structure](#project-structure)
+- [Install](#install)
+- [Usage](#usage)
+- [Roadmap & Future Improvements](#roadmap--future-improvements)
+- [Maintainers](#maintainers)
+- [Contributing](#contributing)
+- [License](#license)
 
-### 🌐 Hybrid Infrastructure (New!)
--   **Master Switch**: Set `NEXT_PUBLIC_INFRA_PROVIDER="AWS"` or `"SELF_HOSTED"` to instantly toggle the entire backend logic.
+## Security
+
+NaesungCMS follows strict enterprise security practices:
+-   **Zero Trust Access**: Every DB query is scoped to the authenticated tenant.
+-   **Dynamic CSP**: Content Security Policy adapts to Cloud/Local environments automatically.
+-   **2FA (Two-Factor Auth)**: Built-in TOTP support for enhanced account security.
+-   **Resilience**: **Redis Fallback System** automatically switches to DB if cache fails.
+-   **Rate Limiting** on all public endpoints.
+-   **Audit Logging** for administrative actions.
+-   **Dependency Scanning** regularly via `npm audit`.
+-   **Secure Media Pipeline**:
+    -   **Magic Number Validation**: Binary signature verification prevents extension spoofing.
+    -   **SVG Sanitization**: Blocks malicious scripts.
+    -   **Proxy Uploads**: Server-side proxy protects storage credentials.
+
+## Background
+
+NaesungCMS was created to solve the "Cloud vs. On-Premise" dilemma in multi-tenant systems. By providing a **Hybrid Infrastructure Adapter Layer**, it allows developers to switch between AWS-native services and open-source alternatives without changing application logic.
+
+### Hybrid Infrastructure Architecture
 
 ```mermaid
 graph TD
@@ -43,28 +69,28 @@ graph TD
     -   **Cloud Mode**: Uses Resend or AWS SES via API.
     -   **Local Mode**: Uses standard SMTP (Nodemailer) for internal networks.
 
+## Key Features
+
 ### 🏢 Multi-Tenancy Architecture
--   **Subdomain Routing**: Automatic routing (`blog.naesungcms.com` / `custom-domain.com`) via Edge Middleware.
+-   **Wildcard & Custom Domains**: Unlimited white-label support via Edge Middleware and `[domain]` dynamic routing.
 -   **Data Isolation**: Application-level **Row-Level Security (RLS)** ensures tenants never access each other's data.
--   **Performance**: **Upstash Redis** caching ensures sub-millisecond response times.
+-   **Performance**: **Upstash Redis** caching layer ensures sub-millisecond response times for tenant configuration.
 
 ### ✍️ Premium Content Experience
--   **Notion-Style Editor**: Tiptap-based editor with slash commands (`/`), markdown shortcuts, and drag-and-drop.
--   **Secure Media Pipeline**:
-    -   **Magic Number Validation**: Binary signature verification prevents extension spoofing.
-    -   **SVG Sanitization**: Blocks malicious scripts.
-    -   **Proxy Uploads**: Server-side proxy protects storage credentials.
--   **Time Machine**: Automatic revision history for every edit.
+-   **Notion-Style Editor**: Tiptap-based block editor with slash commands (`/`), markdown shortcuts, and drag-and-drop.
+-   **Time Machine**: Automatic revision history for every edit with easy rollback.
+-   **Global Command Palette**: Instant navigation and action search via `Ctrl + K` (Command Menu).
 
-### 🛡️ Enterprise Security
--   **Zero Trust Access**: Every DB query is scoped to the authenticated tenant.
--   **Dynamic CSP**: Content Security Policy adapts to Cloud/Local environments automatically.
--   **2FA (Two-Factor Auth)**: Built-in TOTP support for enhanced account security.
--   **Resilience**: **Redis Fallback System** automatically switches to DB if cache fails.
+### 📊 Tactical Insights
+-   **Integrated Analytics**: Built-in dashboards tracking visitors, top posts, and conversion metrics per tenant.
+-   **Service Monitoring**: Real-time status tracking of external infrastructure (S3, Redis, SES).
 
----
+### 🛡️ Enterprise-Grade Infrastructure
+-   **Zero Trust Access Control**: Every server action is scoped and validated using **Zod** and **Safe-Actions**.
+-   **Modern UI Stack**: Built with **Radix UI**, **Shadcn**, and **Tailwind CSS** for a pixel-perfect, accessible experience.
+-   **Type-Safe Persistence**: Prisma ORM with automated migrations and complex relational mapping.
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```bash
 ├── apps
@@ -82,11 +108,39 @@ graph TD
 └── Dockerfile                # Multi-stage production build
 ```
 
----
+## Install
 
-## 🚀 Deployment Guide
+### Prerequisites
+-   **Node.js 18+**
+-   **MySQL or MariaDB** (Local or Cloud)
+-   **Redis** (Optional)
 
-### Option A: Self-Hosted (Docker)
+### Installation
+1.  **Clone & Install**
+    ```bash
+    git clone https://github.com/minseo0388/naesungcms.git
+    cd naesungcms
+    npm install
+    ```
+
+2.  **Database Setup**
+    Ensure your MariaDB/MySQL is running, then populate the schema:
+    ```bash
+    npx prisma db push
+    ```
+
+## Usage
+
+### Local Development
+1.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
+    Visit `http://localhost:3000`.
+
+### Deployment Guide
+
+#### Option A: Self-Hosted (Docker)
 Ideal for internal networks, home labs, or private VPS.
 
 1.  **Configure `.env`**:
@@ -114,7 +168,7 @@ Ideal for internal networks, home labs, or private VPS.
       naesungcms
     ```
 
-### Option B: Cloud (AWS / Vercel)
+#### Option B: Cloud (AWS / Vercel)
 Ideal for scaling to millions of users.
 
 1.  **Configure `.env`**:
@@ -126,38 +180,7 @@ Ideal for scaling to millions of users.
 2.  **Deploy**:
     Push to Vercel/AWS Amplify. The system automatically utilizes S3 and Resend APIs.
 
----
-
-## 💻 Local Development
-
-### Prerequisites
--   **Node.js 18+**
--   **MySQL or MariaDB** (Local or Cloud)
--   **Redis** (Optional)
-
-### Installation
-1.  **Clone & Install**
-    ```bash
-    git clone https://github.com/choiminseo/naesungcms.git
-    cd naesungcms
-    npm install
-    ```
-
-2.  **Database Setup**
-    Ensure your MariaDB/MySQL is running, then populate the schema:
-    ```bash
-    npx prisma db push
-    ```
-
-3.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
-    Visit `http://localhost:3000`.
-
----
-
-## 🔮 Roadmap & Future Improvements
+## Roadmap & Future Improvements
 
 To take NaesungCMS to the next level, consider implementing:
 
@@ -172,22 +195,14 @@ To take NaesungCMS to the next level, consider implementing:
 -   **Monitoring**:
     -   Integrate **Sentry** for real-time error tracking and performance monitoring.
 
----
+## Maintainers
 
-## 🔒 Security Policy
+[@choiminseo](https://github.com/choiminseo)
 
-NaesungCMS follows strict security practices:
--   **Rate Limiting** on all public endpoints.
--   **Audit Logging** for administrative actions.
--   **Dependency Scanning** regularly via `npm audit`.
-
----
-
-## 🤝 Contribution
+## Contributing
 
 Contributions are welcome! Please ensure all PRs pass `npm run lint` and `npx tsc` before submitting.
 
----
+## License
 
-**Created by [Choi Minseo](https://github.com/choiminseo)**
-*Powered by NaesungCMS Technology*
+[Apache License 2.0](LICENSE) © Choi Minseo
