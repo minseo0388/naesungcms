@@ -1,6 +1,7 @@
 # NaesungCMS
 
 <img src="https://img.shields.io/badge/standard--readme-OK-green.svg?style=for-the-badge"/>
+
 ![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Docker](https://img.shields.io/badge/Docker-Ready-blue) ![Prisma](https://img.shields.io/badge/Prisma-ORM-teal) ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
 **NaesungCMS** (Hybrid Edition) is a production-ready, high-performance content management system designed for **Zero Trust Security** and **Massive Multi-tenancy**. 
