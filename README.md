@@ -198,7 +198,7 @@ To take NaesungCMS to the next level, consider implementing:
 
 ## Maintainers
 
-[@choiminseo](https://github.com/choiminseo)
+[@minseo0388](https://github.com/minseo0388) Choi Minseo
 
 ## Contributing
 
