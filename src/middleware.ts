@@ -88,15 +88,18 @@ export default async function middleware(req: NextRequest) {
 
     // Rewrite logic
     if (isMainDomain) {
-        const response = NextResponse.next({
-            request: { headers: requestHeaders },
-        })
+        const response = NextResponse.rewrite(
+            new URL(`/app${path === "/" ? "" : path}`, req.url),
+            {
+                request: { headers: requestHeaders },
+            }
+        )
         response.headers.set("Content-Security-Policy", cspHeader)
         return response
     } else {
         let currentHost = hostname.replace(`.${rootDomain}`, "");
         const response = NextResponse.rewrite(
-            new URL(`/${currentHost}${path}`, req.url),
+            new URL(`/sites/${currentHost}${path}`, req.url),
             {
                 request: { headers: requestHeaders },
             }
