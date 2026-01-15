@@ -76,52 +76,66 @@ model VerificationToken {
 // Tenant System
 model Blog {
   id          String   @id @default(cuid())
-  name        String
-  subdomain   String   @unique // e.g. "myblog" -> myblog.domain.com
-  customDomain String? @unique // e.g. "www.myblog.com"
-  description String?  @db.Text
-  themeConfig String?  @db.Text // JSON: { primaryColor, layout }
-  dailyStats  DailyStat[]
+    name        String
+    subdomain   String   @unique // e.g. "myblog" -> myblog.domain.com
+    customDomain String? @unique // e.g. "www.myblog.com"
+    description String?  @db.Text
+    themeConfig String?  @db.Text // JSON: { primaryColor, layout }
+    navMenu     String?  @db.Text // JSON: Navigation Menu structure
+    dailyStats  DailyStat[]
+    
+    ownerId     String
+    owner       User     @relation("UserBlogs", fields: [ownerId], references: [id], onDelete: Cascade)
   
-  ownerId     String
-  owner       User     @relation("UserBlogs", fields: [ownerId], references: [id], onDelete: Cascade)
+    posts       Post[]
+    pages       Page[]
+    tags        Tag[]
+    categories  Category[]
+  
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+  
+    @@index([ownerId])
+  }
+  
+  model Post {
+    id        String   @id @default(cuid())
+    title     String
+    slug      String   // URL friendly title
+    content   String   @db.LongText
+    published Boolean  @default(false)
+    image     String?
+  
+    // SEO
+    metaDescription String? @db.Text
+    canonicalUrl    String?
+    ogImage         String?
 
-  posts       Post[]
+    blogId    String
+    blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  
+    authorId  String
+    author    User     @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([ownerId])
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  slug      String   // URL friendly title
-  content   String   @db.LongText
-  published Boolean  @default(false)
-  image     String?
-
-  blogId    String
-  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-
-  authorId  String
-  author    User     @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([blogId, slug]) // Slugs must be unique per blog
-  @@index([blogId])
-  @@index([authorId])
-
-  // Phase 4.5 Engagement
-  viewCount Int       @default(0)
-  comments  Comment[]
-  revisions PostRevision[]
-
-  @@fulltext([title, content])
-}
+    categoryId String?
+    category   Category? @relation(fields: [categoryId], references: [id])
+    tags       Tag[]
+  
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  
+    @@unique([blogId, slug]) // Slugs must be unique per blog
+    @@index([blogId])
+    @@index([authorId])
+    @@index([categoryId])
+  
+    // Phase 4.5 Engagement
+    viewCount Int       @default(0)
+    comments  Comment[]
+    revisions PostRevision[]
+  
+    @@fulltext([title, content])
+  }
 
 model Comment {
   id        String   @id @default(cuid())
@@ -135,6 +149,57 @@ model Comment {
   
   @@index([postId])
   @@index([userId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  posts     Post[]
+
+  @@unique([blogId, slug])
+  @@index([blogId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  description String? @db.Text
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  posts     Post[]
+
+  parentId  String?
+  parent    Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+
+  @@unique([blogId, slug])
+  @@index([blogId])
+  @@index([parentId])
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String
+  content   String   @db.LongText
+  published Boolean  @default(false)
+  
+  // SEO
+  metaDescription String? @db.Text
+  ogImage         String?
+
+  blogId    String
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([blogId, slug])
+  @@index([blogId])
 }
 
 // Phase 4.3 Security

@@ -21,7 +21,10 @@ const createPostWithBlogSchema = createPostSchema.extend({
 export const createPost = createSafeAction(
     createPostWithBlogSchema,
     async (data, ctx) => {
-        const { blogId, slug: providedSlug, title, content, published } = data
+        const {
+            blogId, slug: providedSlug, title, content, published,
+            categoryId, tags, metaDescription, canonicalUrl, ogImage
+        } = data
 
         // Verify ownership (Business Logic)
         const blog = await prisma.blog.findUnique({
@@ -52,9 +55,64 @@ export const createPost = createSafeAction(
             slug = `${slug}-${Date.now()}`
         }
 
+        // Handle Tags: Array of strings -> Connect or Create
+        let tagConnections = undefined
+        if (tags && tags.length > 0) {
+            tagConnections = {
+                connect: [],
+                create: []
+            }
+            // Logic: For each tag, check if exists in this blog.
+            // Actually, Prisma connectOrCreate is great but uniqueness is scoped to blog.
+            // Since we receive names, we need to map them.
+            // Simplify: We can use nested create with connect logic if we knew IDs.
+            // Since we have names, we might need to pre-fetch or try connectOrCreate.
+            // With composite key [blogId, slug], connectOrCreate requires unique input.
+            // Slug generation for tags is needed.
+
+            // For simplicity in this step, assume tags are processed. 
+            // Better approach:
+            // 1. Calculate slugs for all tags.
+            // 2. Upsert them first (since many-to-many, pure create/connect in one go is tricky if IDs unknown)
+            // But Prisma supports `connectOrCreate`.
+        }
+
+        // Logic for simple Tag Upsert by Name using Prisma's transactional power or just loop
+        // Since `tags` input is just names.
+
+        const tagConnects: { id: string }[] = []
+        if (tags) {
+            for (const tagName of tags) {
+                const tagSlug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+                // Upsert tag
+                const tag = await prisma.tag.upsert({
+                    where: {
+                        blogId_slug: {
+                            blogId,
+                            slug: tagSlug
+                        }
+                    },
+                    update: {},
+                    create: {
+                        name: tagName,
+                        slug: tagSlug,
+                        blogId
+                    }
+                })
+                tagConnects.push({ id: tag.id })
+            }
+        }
+
         const post = await prisma.post.create({
             data: {
-                title, content, slug: slug!, published, blogId, authorId: ctx.userId
+                title, content, slug: slug!, published, blogId, authorId: ctx.userId,
+                categoryId,
+                metaDescription,
+                canonicalUrl,
+                ogImage,
+                tags: {
+                    connect: tagConnects
+                }
             }
         })
 
@@ -124,7 +182,10 @@ const updatePostSchema = createPostSchema.extend({
 export const updatePost = createSafeAction(
     updatePostSchema,
     async (data, ctx) => {
-        const { id, blogId, title, content, published, slug } = data
+        const {
+            id, blogId, title, content, published, slug,
+            categoryId, tags, metaDescription, canonicalUrl, ogImage
+        } = data
 
         // Verify Ownership
         const post = await prisma.post.findUnique({
@@ -136,51 +197,32 @@ export const updatePost = createSafeAction(
             throw new Error("Post not found")
         }
 
-        // Check permissions (User must own blog of this post)
-        // We can double check Blog ownership, or trust that only Owner has access to Dashboard.
-        // Better to check Blog ownership.
+        // Check permissions
         const blog = await prisma.blog.findUnique({
             where: { id: blogId, ownerId: ctx.userId }
         })
         if (!blog) throw new Error("Unauthorized")
 
-        // 1. Resource Management: Detect Deleted Images
-        // 1. Resource Management: Detect Deleted Images
-        // Helper to extract keys (Universal: work for S3 and Local)
+        // 1. Resource Management (Image cleanup logic omitted for brevity, keeping existing)
+        // ... (Keep existing image cleanup logic here if it was present, otherwise reuse helper)
+
+        // RE-INSERTING IMAGE CLEANUP LOGIC FROM ORIGINAL FILE TO PREVENT DELETION
         const extractKeys = (html: string) => {
             const keys = new Set<string>()
-
-            // S3 Pattern
             const bucketUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/`
-            // Local Pattern
             const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
             const localUrl = `${appUrl}/uploads/`
-
-            // Find S3 keys
             const s3Regex = new RegExp(bucketUrl + "([^\"'\\s]+)", "g")
             let match;
-            while ((match = s3Regex.exec(html)) !== null) {
-                keys.add(match[1])
-            }
-
-            // Find Local keys
+            while ((match = s3Regex.exec(html)) !== null) keys.add(match[1])
             const localRegex = new RegExp(localUrl + "([^\"'\\s]+)", "g")
-            while ((match = localRegex.exec(html)) !== null) {
-                keys.add(match[1])
-            }
-
+            while ((match = localRegex.exec(html)) !== null) keys.add(match[1])
             return keys
         }
-
         const oldKeys = extractKeys(post.content)
         const newKeys = extractKeys(content)
-
-        // Find keys present in OLD but NOT in NEW
         const keysToDelete = Array.from(oldKeys).filter(key => !newKeys.has(key))
-
         if (keysToDelete.length > 0) {
-            console.log(`[Cleanup] Found ${keysToDelete.length} orphaned images. Deleting...`)
-            // Async delete (fire and forget to not block UI)
             Promise.all(keysToDelete.map(key => deleteFile(key).catch(err => console.error(err))))
         }
 
@@ -195,6 +237,20 @@ export const updatePost = createSafeAction(
             }
         })
 
+        // Handle Tags (Upsert same as create)
+        const tagConnects: { id: string }[] = []
+        if (tags) {
+            for (const tagName of tags) {
+                const tagSlug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+                const tag = await prisma.tag.upsert({
+                    where: { blogId_slug: { blogId, slug: tagSlug } },
+                    update: {},
+                    create: { name: tagName, slug: tagSlug, blogId }
+                })
+                tagConnects.push({ id: tag.id })
+            }
+        }
+
         // 2. Update Post
         const updated = await prisma.post.update({
             where: { id },
@@ -202,7 +258,14 @@ export const updatePost = createSafeAction(
                 title,
                 content,
                 published,
-                slug // Optional update
+                slug,
+                categoryId,
+                metaDescription,
+                canonicalUrl,
+                ogImage,
+                tags: tags ? {
+                    set: tagConnects // Replace all tags with new list
+                } : undefined
             }
         })
 

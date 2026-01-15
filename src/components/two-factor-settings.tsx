@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { setup2FA, verify2FA, check2FAStatus } from "@/actions/two-factor"
 import { toast } from "sonner"
 import { useEffect } from "react"
-import QRCode from "qrcode"
+import { toDataURL } from "qrcode"
 
 // @ts-ignore - qrcode types may not be available
-type QRCodeType = typeof QRCode
+// type QRCodeType = typeof QRCode
 
 export function TwoFactorSettings() {
     const [enabled, setEnabled] = useState(false)
@@ -37,11 +37,11 @@ export function TwoFactorSettings() {
                 return
             }
 
-            if (result.data) {
+            if (result.data && result.data.otpauth) {
                 setSecret(result.data.secret || null)
 
                 // Generate QR code
-                const qrUrl = await QRCode.toDataURL(result.data.otpauth)
+                const qrUrl = await toDataURL(result.data.otpauth)
                 setQrCodeUrl(qrUrl)
                 setShowSetup(true)
 
