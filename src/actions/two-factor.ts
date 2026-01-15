@@ -98,6 +98,20 @@ export const verify2FA = createSafeAction(
             })
         }
 
+        // Set verification cookie
+        const { cookies } = await import("next/headers")
+        const cookieStore = await cookies()
+        cookieStore.set("naesungcms_2fa_verified", "true", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            // Expire in 30 days or session end? 
+            // For security, maybe session end (no maxAge). 
+            // Often 2FA is remembered for 30 days. Let's say 24h for now.
+            maxAge: 60 * 60 * 24
+        })
+
         return { success: true, verified: true }
     },
     { actionName: "verify2FA", limit: 10 }

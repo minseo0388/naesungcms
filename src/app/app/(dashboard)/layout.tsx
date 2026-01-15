@@ -7,6 +7,8 @@ import { CommandMenu } from "@/components/command-menu"
 
 import { MobileNav } from "@/components/dashboard/mobile-nav"
 
+import { cookies } from "next/headers"
+
 export default async function DashboardLayout({
     children,
 }: {
@@ -16,6 +18,16 @@ export default async function DashboardLayout({
 
     if (!session?.user) {
         redirect("/api/auth/signin")
+    }
+
+    // 2FA Check
+    if (session.user.twoFactorEnabled) {
+        const cookieStore = await cookies()
+        const isVerified = cookieStore.get("naesungcms_2fa_verified")?.value === "true"
+
+        if (!isVerified) {
+            redirect("/app/auth/verify-2fa")
+        }
     }
 
     const blogs = await getUserBlogs()

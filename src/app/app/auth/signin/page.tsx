@@ -1,5 +1,6 @@
 import { signIn } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -21,9 +22,9 @@ export default function SignInPage() {
                             await signIn("google", { redirectTo: "/dashboard" });
                         }}
                     >
-                        <Button className="w-full" variant="outline" type="submit">
+                        <SubmitButton className="w-full" variant="outline" type="submit">
                             Sign in with Google
-                        </Button>
+                        </SubmitButton>
                     </form>
 
                     <form
@@ -32,9 +33,9 @@ export default function SignInPage() {
                             await signIn("discord", { redirectTo: "/dashboard" });
                         }}
                     >
-                        <Button className="w-full" variant="outline" type="submit">
+                        <SubmitButton className="w-full" variant="outline" type="submit">
                             Sign in with Discord
-                        </Button>
+                        </SubmitButton>
                     </form>
 
                     <div className="relative">
@@ -68,9 +69,9 @@ export default function SignInPage() {
                                 required
                             />
                         </div>
-                        <Button className="w-full" type="submit">
+                        <SubmitButton className="w-full" type="submit">
                             Sign in with Email
-                        </Button>
+                        </SubmitButton>
                     </form>
                 </div>
             </div>

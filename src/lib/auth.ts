@@ -67,15 +67,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (session.user && user) {
                 session.user.id = user.id;
                 session.user.role = user.role as string;
-
-                // Check 2FA status
-                const dbUser = await prisma.user.findUnique({
-                    where: { id: user.id },
-                    select: { twoFactorEnabled: true }
-                })
-
-                // Add 2FA status to session for client-side checks
-                session.user.twoFactorEnabled = dbUser?.twoFactorEnabled || false
+                // user comes from database, so it should have twoFactorEnabled if schema has it
+                session.user.twoFactorEnabled = (user as any).twoFactorEnabled || false;
             }
             return session
         },
