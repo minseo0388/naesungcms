@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
 import { rateLimit } from "@/lib/ratelimit"
 import { z } from "zod"
+import { logError } from "@/lib/error-logger"
 
 type ActionContext = {
     userId: string
@@ -52,8 +53,11 @@ export function createSafeAction<T, R>(
 
             return { success: true, data: result }
         } catch (error) {
-            console.error(`Action ${options.actionName} failed:`, error)
-            // 5. Audit Log (Failure) is optional, but we can log critical failures here
+            // 5. Secure Error Logging
+            logError(error, {
+                userId: session.user.id,
+                context: `action:${options.actionName}`
+            })
             return { error: "Internal Server Error" }
         }
     }

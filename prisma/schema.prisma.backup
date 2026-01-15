@@ -6,10 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql" // Primary database provider
+  provider = env("DATABASE_PROVIDER") // "mysql" or "sqlite"
   url      = env("DATABASE_URL")
-  // Note: For SQLite, change provider to "sqlite" and update DATABASE_URL
-  // SQLite features like fullTextSearch/fullTextIndex are not available
 }
 
 // NextAuth User

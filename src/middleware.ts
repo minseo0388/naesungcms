@@ -83,8 +83,21 @@ export default async function middleware(req: NextRequest) {
     `.replace(/\s{2,}/g, ' ').trim()
 
     const requestHeaders = new Headers(req.headers)
-    requestHeaders.set("x-nonce", "nonce-123") // Simplified nonce logic if needed
+    // Generate a proper nonce for CSP (in production, use crypto.randomUUID())
+    const nonce = Buffer.from(crypto.randomUUID()).toString('base64').substring(0, 16)
+    requestHeaders.set("x-nonce", nonce)
     requestHeaders.set("Content-Security-Policy", cspHeader)
+
+    // Additional Security Headers
+    requestHeaders.set("X-Frame-Options", "DENY")
+    requestHeaders.set("X-Content-Type-Options", "nosniff")
+    requestHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin")
+    requestHeaders.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+
+    // HSTS - only in production with HTTPS
+    if (!isLocal && appUrl.startsWith('https')) {
+        requestHeaders.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    }
 
     // Rewrite logic
     if (isMainDomain) {
@@ -95,6 +108,12 @@ export default async function middleware(req: NextRequest) {
             }
         )
         response.headers.set("Content-Security-Policy", cspHeader)
+        response.headers.set("X-Frame-Options", "DENY")
+        response.headers.set("X-Content-Type-Options", "nosniff")
+        response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+        if (!isLocal && appUrl.startsWith('https')) {
+            response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        }
         return response
     } else {
         let currentHost = hostname.replace(`.${rootDomain}`, "");
@@ -105,6 +124,12 @@ export default async function middleware(req: NextRequest) {
             }
         );
         response.headers.set("Content-Security-Policy", cspHeader)
+        response.headers.set("X-Frame-Options", "DENY")
+        response.headers.set("X-Content-Type-Options", "nosniff")
+        response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+        if (!isLocal && appUrl.startsWith('https')) {
+            response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        }
         return response
     }
 }

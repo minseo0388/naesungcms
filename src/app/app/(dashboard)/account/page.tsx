@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import prisma from "@/lib/db"
 import { ProfileForm } from "@/components/dashboard/profile-form"
+import { TwoFactorSettings } from "@/components/two-factor-settings"
+import { Separator } from "@/components/ui/separator"
 
 export default async function AccountPage() {
     const session = await auth()
@@ -20,8 +22,12 @@ export default async function AccountPage() {
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">Account Settings</h2>
             </div>
-            <div className="max-w-2xl">
+            <div className="max-w-2xl space-y-6">
                 <ProfileForm user={user} />
+
+                <Separator />
+
+                <TwoFactorSettings />
             </div>
         </div>
     )

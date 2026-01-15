@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { uploadFileToS3 } from "@/lib/storage"
 import { rateLimit } from "@/lib/ratelimit"
 import prisma from "@/lib/db"
+import { logError, createErrorResponse } from "@/lib/error-logger"
 
 export async function POST(req: NextRequest) {
     const session = await auth()
@@ -95,7 +96,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ publicUrl })
     } catch (error) {
-        console.error("Upload error:", error)
-        return new NextResponse("Internal Server Error", { status: 500 })
+        return createErrorResponse(error, 500, "Upload failed", {
+            userId: session.user.id,
+            context: "file-upload"
+        })
     }
 }

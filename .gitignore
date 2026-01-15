@@ -54,3 +54,8 @@ backups/
 # Ignore uploaded files but keep the directory structure if needed
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Test Outputs
+prisma-error.txt
+prisma-generate-output.txt
+db-push-output.txt

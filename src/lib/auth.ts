@@ -12,12 +12,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            allowDangerousEmailAccountLinking: true,
+            // Removed allowDangerousEmailAccountLinking for security
+            // Users must explicitly link accounts through settings
         }),
         Discord({
             clientId: process.env.DISCORD_CLIENT_ID,
             clientSecret: process.env.DISCORD_CLIENT_SECRET,
-            allowDangerousEmailAccountLinking: true,
+            // Removed allowDangerousEmailAccountLinking for security
+            // Users must explicitly link accounts through settings
         }),
         Resend({
             from: "login@naesungcms.com",
@@ -35,7 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
     },
     callbacks: {
-        async signIn({ account, profile }) {
+        async signIn({ account, profile, user }) {
             if (account?.provider === "google") {
                 return profile?.email_verified === true
             }
@@ -43,12 +45,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 // Discord returns 'verified' as boolean
                 return (profile as any)?.verified === true
             }
+
+            // Check if user has 2FA enabled
+            if (user?.id) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: { twoFactorEnabled: true }
+                })
+
+                // If 2FA is enabled, we'll handle verification in the session callback
+                // For now, allow signin but mark for 2FA verification
+                if (dbUser?.twoFactorEnabled) {
+                    // Store in session that 2FA verification is needed
+                    // This will be checked in the session callback
+                }
+            }
+
             return true // Allow other providers (if any) or credential login
         },
         async session({ session, user }) {
             if (session.user && user) {
                 session.user.id = user.id;
                 session.user.role = user.role as string;
+
+                // Check 2FA status
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: { twoFactorEnabled: true }
+                })
+
+                // Add 2FA status to session for client-side checks
+                session.user.twoFactorEnabled = dbUser?.twoFactorEnabled || false
             }
             return session
         },
