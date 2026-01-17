@@ -58,8 +58,23 @@ export default async function middleware(req: NextRequest) {
     // NOTE: In production, hardcode the root domain or use env
     const rootDomain = "localhost:3000";
 
+    // Force redirect from localhost (stale cookie/cache) to 127.0.0.1
+    // Also clear auth cookies to prevent infinite redirect loops caused by stale callback URLs
+    if (hostname.includes("localhost")) {
+        const response = NextResponse.redirect(new URL(req.url.replace(hostname, "127.0.0.1:3000")));
+        response.cookies.delete("next-auth.callback-url");
+        response.cookies.delete("next-auth.csrf-token");
+        response.cookies.delete("next-auth.session-token");
+        response.cookies.delete("__Secure-next-auth.callback-url"); // For production/secure cookies
+        return response;
+    }
+
+
     // Check if we are on a custom domain or subdomain
-    const isMainDomain = hostname === rootDomain || hostname === "www." + rootDomain;
+    // We treat 127.0.0.1:3000 same as localhost:3000 for development credentials
+    const isMainDomain = hostname === rootDomain ||
+        hostname === "www." + rootDomain ||
+        hostname === "127.0.0.1:3000";
 
     // Dynamic CSP Construction
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"

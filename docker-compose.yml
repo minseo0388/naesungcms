@@ -3,14 +3,83 @@ version: '3.8'
 services:
   db:
     image: mysql:8.0
+    container_name: naesungcms-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: naesungcms
+      MYSQL_USER: naesungcms
+      MYSQL_PASSWORD: naesungcms
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - naesungcms-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: naesungcms-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # Database connection (using service name 'db' as hostname)
+      DATABASE_URL: "mysql://naesungcms:naesungcms@db:3306/naesungcms"
+
+      # Infrastructure
+      NEXT_PUBLIC_INFRA_PROVIDER: "SELF_HOSTED"
+
+      # Auth
+      AUTH_SECRET: "naesung-cms-master-key-change-this-in-prod"
+      # Using 127.0.0.1 helps consistency, or keep localhost but ensure TRUST_HOST is true
+      NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3000"
+      AUTH_URL: "http://127.0.0.1:3000"
+      AUTH_TRUST_HOST: "true"
+
+      # OAuth Providers (Replace with your actual keys)
+      AUTH_GOOGLE_ID: "${AUTH_GOOGLE_ID}"
+      AUTH_GOOGLE_SECRET: "${AUTH_GOOGLE_SECRET}"
+      AUTH_DISCORD_ID: "${AUTH_DISCORD_ID}"
+      AUTH_DISCORD_SECRET: "${AUTH_DISCORD_SECRET}"
+
+      # IMPORTANT: Add these Callback URLs to your OAuth Provider Settings:
+      # Google: http://127.0.0.1:3000/api/auth/callback/google
+      # Discord: http://127.0.0.1:3000/api/auth/callback/discord
+
+      # Storage
+      STORAGE_TYPE: "LOCAL"
+
+      # Email
+      EMAIL_PROVIDER: "SMTP"
+      SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_SECURE: "${SMTP_SECURE:-false}"
+
+      # Node
+      NODE_ENV: "production"
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - naesungcms-network
+    volumes:
+      # Mount prisma schema for migrations if needed
+      - ./prisma:/app/prisma:ro
+
+networks:
+  naesungcms-network:
+    driver: bridge
 
 volumes:
   db_data:

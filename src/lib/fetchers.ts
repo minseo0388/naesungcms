@@ -5,6 +5,12 @@ import { redis } from "@/lib/redis"
 // Cache based on arguments. Good for per-request caching in Next.js App Router.
 
 export const getBlogBySubdomain = cache(async (subdomain: string) => {
+    // DEBUG: Trace undefined subdomain
+    if (!subdomain) {
+        console.error("DEBUG: getBlogBySubdomain called with undefined/empty subdomain");
+        // console.trace();
+        return null;
+    }
     // 1. Try Redis
     if (redis) {
         try {
